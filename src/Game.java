@@ -12,7 +12,7 @@ public class Game {
     private static HashMap<String, Integer> cleavageMap = new HashMap<String, Integer>();
     private static HashMap<String, Integer> ecoMap = new HashMap<String, Integer>();
     private static HashMap<String, Integer> crystalMap = new HashMap<String, Integer>();
-
+    private static final String[] categories = {"hardness", "specific gravity", "cleavage", "crystal abundance", "economic value"};
 
     public static void main(String[] args) {
         Scanner input = new Scanner(System.in);
@@ -27,21 +27,23 @@ public class Game {
         pack = addSuperTrumps(pack);
         Collections.shuffle(pack);
         System.out.println(String.format("Pack has %d cards", pack.size()));
-        int inputNum = 0;
+        int numPlayers = getNumberInput(3, 5, "Enter number of players(3-5): ");
+        playGame(pack, numPlayers);
+    }
+
+    private static int getNumberInput(int min, int max, String message) {
+        Scanner input = new Scanner(System.in);
+        int inputNum = min - 1;
         boolean err = false;
         do {
             if (err) {
-                System.out.println("Number must be between 3 and 5 inclusive.");
+                System.out.println("Number must be between" + min + " and " + max + " inclusive.");
             }
-            System.out.print("Enter number of players(3-5): ");
+            System.out.print(message);
             inputNum = input.nextInt();
             err = true;
-        } while (inputNum < 3 || inputNum > 5);
-
-        playGame(pack, inputNum);
-
-        ArrayList<Card> hand = dealHand(pack);
-        displayHand(hand);
+        } while (inputNum < min || inputNum > max);
+        return inputNum;
     }
 
     private static void playGame(ArrayList<Card> pack, int numPlayers) {
@@ -54,27 +56,71 @@ public class Game {
         int currentCategory = -1;
         int currentPlayer = 0;
         boolean firstTurn = true;
+        MineralCard lastCard = null;
+
         while (!gameOver(players)) {
             while (!roundOver(players)) {
                 for (int i = 0; i < numPlayers; i++) {
-                    if (players[i].passed)
+                    if (players[i].passed || players[i].hand.size() == 0)
                         continue;
-                    System.out.println("Player " + (i + 1) + "'s  hand");
+                    System.out.println("Player " + (i + 1) + "'s  turn");
                     displayHand(players[i].hand);
-                    System.out.print("Choose a card to play: ");
-                    int choice = input.nextInt();
+                    int choice;
                     if (firstTurn) {
+                        choice = getNumberInput(1, players[i].hand.size(), "Choose a card: ");
+                        lastCard = (MineralCard) players[i].hand.get(choice - 1);
                         System.out.print("Choose the category: ");
+                        currentCategory = input.nextInt() - 1;
+                        System.out.println("Category chosen: " + categories[currentCategory]);
+                        players[i].hand.remove(lastCard);
+                        firstTurn = false;
+                        continue;
                     }
+                    choice = getNumberInput(0, players[i].hand.size(), "Choose a card, or type 0 to pass");
+                    if (choice == 0) {
+                        System.out.println("Player "+(i+1)+" passed and drew a card.");
+                        players[i].hand.add(pack.get(0));
+                        players[i].passed = true;
+                        continue;
+                    }
+                    Card chosenCard = players[i].hand.get(choice - 1);
 
+                    if (chosenCard instanceof MineralCard && isGreater(currentCategory, (MineralCard) chosenCard, lastCard)) {
+                        lastCard = (MineralCard) chosenCard;
+                        players[i].hand.remove(lastCard);
+                        System.out.println("Played card: " + lastCard.getName());
+                    } else if (chosenCard instanceof SuperTrumpCard) {
+                        System.out.println("Supertrump card played.");
+                    } else {
+                        System.out.println("The card's " + categories[currentCategory] + " must be greater than the last card played.");
+                        displayLastCard(lastCard, currentCategory);
+                    }
                 }
             }
 
-            for (Player player: players) {
+            for (Player player : players) {
                 player.passed = false;
             }
 
+            firstTurn = true;
+
         }
+    }
+
+    private static void displayLastCard(MineralCard card, int category) {
+        String output = "Last card played: "+card.getName()+" "+categories[category]+": ";
+        if (category == 0)
+            output = output + card.getHardness();
+        else if (category == 1)
+            output = output + card.getGravity();
+        else if (category == 2)
+            output = output + card.getCleavage();
+        else if (category == 3)
+            output = output + card.getCrystalAbundance();
+        else if (category == 4)
+            output = output + card.getEcoValue();
+        System.out.println(output);
+
     }
 
     private static boolean gameOver(Player[] players) {
@@ -172,15 +218,15 @@ public class Game {
         }
 
 
-        if (category == 1) {
+        if (category == 0) {
             return (card1.getHardness() > card2.getHardness());
-        } else if (category == 2) {
+        } else if (category == 1) {
             return (card1.getGravity() > card2.getGravity());
-        } else if (category == 3) {
+        } else if (category == 2) {
             return (cleavageMap.get(card1.getCleavage()) > cleavageMap.get((card2.getCleavage())));
-        } else if (category == 4) {
+        } else if (category == 3) {
             return (crystalMap.get(card1.getCrystalAbundance()) > cleavageMap.get((card2.getCrystalAbundance())));
-        } else if (category == 5) {
+        } else if (category == 4) {
             return (ecoMap.get(card1.getEcoValue()) > ecoMap.get(card2.getEcoValue()));
         }
         return false;
@@ -199,6 +245,7 @@ public class Game {
             }
             count++;
         }
+
     }
 
     private static ArrayList<Card> dealHand(ArrayList<Card> pack) {
