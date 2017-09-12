@@ -24,7 +24,8 @@ public class Game {
             return;
         }
 
-        addSuperTrumps(pack);
+        pack = addSuperTrumps(pack);
+        Collections.shuffle(pack);
         System.out.println(String.format("Pack has %d cards", pack.size()));
         int inputNum = 0;
         boolean err = false;
@@ -37,7 +38,62 @@ public class Game {
             err = true;
         } while (inputNum < 3 || inputNum > 5);
 
+        playGame(pack, inputNum);
+
         ArrayList<Card> hand = dealHand(pack);
+        displayHand(hand);
+    }
+
+    private static void playGame(ArrayList<Card> pack, int numPlayers) {
+        Player[] players = new Player[numPlayers];
+        for (int i = 0; i < numPlayers; i++) {
+            players[i] = new Player(dealHand(pack));
+        }
+
+        Scanner input = new Scanner(System.in);
+        int currentCategory = -1;
+        int currentPlayer = 0;
+        boolean firstTurn = true;
+        while (!gameOver(players)) {
+            while (!roundOver(players)) {
+                for (int i = 0; i < numPlayers; i++) {
+                    if (players[i].passed)
+                        continue;
+                    System.out.println("Player " + (i + 1) + "'s  hand");
+                    displayHand(players[i].hand);
+                    System.out.print("Choose a card to play: ");
+                    int choice = input.nextInt();
+                    if (firstTurn) {
+                        System.out.print("Choose the category: ");
+                    }
+
+                }
+            }
+
+            for (Player player: players) {
+                player.passed = false;
+            }
+
+        }
+    }
+
+    private static boolean gameOver(Player[] players) {
+        int notEmpty = 0;
+        for (Player player : players) {
+            if (player.hand.size() > 0)
+                notEmpty++;
+        }
+        return (notEmpty <= 1);
+    }
+
+    private static boolean roundOver(Player[] players) {
+        int numPassed = 0;
+        for (Player player : players) {
+            if (player.passed) {
+                numPassed++;
+            }
+        }
+        return (numPassed == players.length - 1);
     }
 
     private static ArrayList<Card> readCards(String filename) throws FileNotFoundException {
@@ -59,12 +115,11 @@ public class Game {
             passedHeader = true;
         }
 
-        Collections.shuffle(pack);
         System.out.println("Loaded cards successfully.");
         return pack;
     }
 
-    private static void addSuperTrumps(ArrayList<Card> pack) {
+    private static ArrayList<Card> addSuperTrumps(ArrayList<Card> pack) {
         Card[] superTrumpList = {
                 new SuperTrumpCard("The Mineralogist", 0),
                 new SuperTrumpCard("The Geologist", 1),
@@ -74,6 +129,7 @@ public class Game {
                 new SuperTrumpCard("The Gemmologist", 5)};
 
         pack.addAll(Arrays.asList(superTrumpList));
+        return pack;
     }
 
     private static boolean isGreater(int category, MineralCard card1, MineralCard card2) {
@@ -124,13 +180,24 @@ public class Game {
             return (cleavageMap.get(card1.getCleavage()) > cleavageMap.get((card2.getCleavage())));
         } else if (category == 4) {
             return (crystalMap.get(card1.getCrystalAbundance()) > cleavageMap.get((card2.getCrystalAbundance())));
+        } else if (category == 5) {
+            return (ecoMap.get(card1.getEcoValue()) > ecoMap.get(card2.getEcoValue()));
         }
         return false;
     }
 
     private static void displayHand(ArrayList<Card> hand) {
+        System.out.println("Number\tName\tHardness\tSpecific Gravity\tCleavage\tCrystal Abundance\tEconomic Value");
+        int count = 1;
         for (Card card : hand) {
-            System.out.println(card.getName());
+            if (card instanceof SuperTrumpCard)
+                System.out.println(count + ". \t" + card.getName());
+            else {
+                MineralCard cardCasted;
+                cardCasted = (MineralCard) card;
+                System.out.println(count + ". \t" + cardCasted.getName() + "\t" + cardCasted.getHardness() + "\t" + cardCasted.getGravity() + "\t" + cardCasted.getCleavage() + "\t" + cardCasted.getCrystalAbundance() + "\t" + cardCasted.getEcoValue());
+            }
+            count++;
         }
     }
 
