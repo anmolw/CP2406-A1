@@ -3,13 +3,20 @@ public class MineralCard extends Card {
     private double gravity;
     private String cleavage;
     private String ecoValue;
+    private String crystalAbundance;
 
-    public MineralCard(String name, double hardness, double gravity, String cleavage, String ecoValue) {
+
+    public MineralCard(String name, double hardness, double gravity, String cleavage, String crystalAbundance, String ecoValue) {
         super(name);
         this.hardness = hardness;
         this.gravity = gravity;
         this.cleavage = cleavage;
+        this.crystalAbundance = crystalAbundance;
         this.ecoValue = ecoValue;
+    }
+
+    public String getCrystalAbundance() {
+        return crystalAbundance;
     }
 
     public double getHardness() {
