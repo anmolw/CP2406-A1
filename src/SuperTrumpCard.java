@@ -5,4 +5,8 @@ public class SuperTrumpCard extends Card {
         super(name);
         this.trumpType = type;
     }
+
+    public int getTrumpType() {
+        return trumpType;
+    }
 }
