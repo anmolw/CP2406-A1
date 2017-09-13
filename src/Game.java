@@ -9,10 +9,10 @@ import java.util.Arrays;
 
 public class Game {
     private static final String filename = "card.txt";
-    private static HashMap<String, Integer> cleavageMap = new HashMap<String, Integer>();
-    private static HashMap<String, Integer> ecoMap = new HashMap<String, Integer>();
-    private static HashMap<String, Integer> crystalMap = new HashMap<String, Integer>();
-    private static final String[] categories = {"hardness", "specific gravity", "cleavage", "crystal abundance", "economic value"};
+    private static HashMap<String, Integer> cleavageMap = new HashMap<>();
+    private static HashMap<String, Integer> ecoMap = new HashMap<>();
+    private static HashMap<String, Integer> crustalMap = new HashMap<>();
+    private static final String[] categories = {"Hardness", "Specific gravity", "Cleavage", "Crustal abundance", "Economic value"};
 
     public static void main(String[] args) {
         Scanner input = new Scanner(System.in);
@@ -37,7 +37,7 @@ public class Game {
         boolean err = false;
         do {
             if (err) {
-                System.out.println("Number must be between" + min + " and " + max + " inclusive.");
+                System.out.println("Number must be between " + min + " and " + max + " inclusive.");
             }
             System.out.print(message);
             inputNum = input.nextInt();
@@ -52,7 +52,6 @@ public class Game {
             players[i] = new Player(dealHand(pack));
         }
 
-        Scanner input = new Scanner(System.in);
         int currentCategory = -1;
         int currentPlayer = 0;
         boolean firstTurn = true;
@@ -60,54 +59,82 @@ public class Game {
 
         while (!gameOver(players)) {
             while (!roundOver(players)) {
-                for (int i = 0; i < numPlayers; ) {
-                    if (players[i].passed || players[i].hand.size() == 0) {
-                        i++;
+                if (!firstTurn)
+                    currentPlayer = 0;
+                if (currentPlayer == numPlayers)
+                    currentPlayer--;
+
+                boolean trumpOverride = false;
+
+                while (currentPlayer < numPlayers) {
+
+                    if (players[currentPlayer].passed || players[currentPlayer].hand.size() == 0) {
+                        currentPlayer++;
                         continue;
                     }
 
-                    System.out.println("Player " + (i + 1) + "'s  turn");
-                    displayHand(players[i].hand);
-                    int choice;
+                    System.out.println("Player " + (currentPlayer + 1) + "'s  turn");
+                    displayHand(players[currentPlayer].hand);
+                    int choice = 0;
                     if (firstTurn) {
-                        choice = getNumberInput(1, players[i].hand.size(), "Choose a card: ");
-                        lastCard = (MineralCard) players[i].hand.get(choice - 1);
-                        System.out.print("Choose the category: ");
-                        currentCategory = input.nextInt() - 1;
-                        System.out.println("Category chosen: " + categories[currentCategory]);
-                        players[i].hand.remove(lastCard);
-                        firstTurn = false;
-                        i++;
-                        continue;
+                        choice = getNumberInput(1, players[currentPlayer].hand.size(), "Choose a card: ");
+                    } else {
+                        System.out.println("Current category: " + categories[currentCategory]);
+                        choice = getNumberInput(0, players[currentPlayer].hand.size(), "Choose a card, or type 0 to pass: ");
+                        if (choice == 0) {
+                            System.out.println("Player " + (currentPlayer + 1) + " passed and drew a card.");
+                            players[currentPlayer].hand.add(pack.get(0));
+                            players[currentPlayer].passed = true;
+                            currentPlayer++;
+                            continue;
+                        }
                     }
-                    System.out.println("Current category: " + categories[currentCategory]);
-                    choice = getNumberInput(0, players[i].hand.size(), "Choose a card, or type 0 to pass: ");
-                    if (choice == 0) {
-                        System.out.println("Player " + (i + 1) + " passed and drew a card.");
-                        players[i].hand.add(pack.get(0));
-                        players[i].passed = true;
-                        i++;
-                        continue;
-                    }
-                    Card chosenCard = players[i].hand.get(choice - 1);
 
-                    if (chosenCard instanceof MineralCard && isGreater(currentCategory, (MineralCard) chosenCard, lastCard)) {
-                        lastCard = (MineralCard) chosenCard;
-                        players[i].hand.remove(lastCard);
-                        System.out.println("Played card: " + lastCard.getName());
-                        i++;
+                    Card chosenCard = players[currentPlayer].hand.get(choice - 1);
+
+                    if (chosenCard instanceof MineralCard) {
+                        if (firstTurn) {
+                            lastCard = (MineralCard) players[currentPlayer].hand.get(choice - 1);
+
+                            for (int j = 0; j < categories.length; j++)
+                                System.out.println((j + 1) + ". " + categories[j]);
+
+                            currentCategory = getNumberInput(1, 5, "Choose the category (1-5): ") - 1;
+                            System.out.println("Category chosen: " + categories[currentCategory]);
+                            players[currentPlayer].hand.remove(lastCard);
+                            System.out.println("Played card: " + lastCard.getName());
+                            firstTurn = false;
+                            trumpOverride = false;
+                            currentPlayer++;
+                        } else if (trumpOverride || isGreater(currentCategory, (MineralCard) chosenCard, lastCard)) {
+                            lastCard = (MineralCard) chosenCard;
+                            players[currentPlayer].hand.remove(lastCard);
+                            System.out.println("Played card: " + lastCard.getName());
+                            currentPlayer++;
+                            trumpOverride = false;
+                        } else {
+                            System.out.println("The card's " + categories[currentCategory] + " must be greater than the last card played.");
+                            displayLastCard(lastCard, currentCategory);
+                        }
                     } else if (chosenCard instanceof SuperTrumpCard) {
                         int trumpType = ((SuperTrumpCard) chosenCard).getTrumpType();
+                        firstTurn = false;
+                        trumpOverride = true;
+                        System.out.println("Player " + (currentPlayer + 1) + " played SuperTrump card: " + chosenCard.getName());
                         if (trumpType != 5) {
-                            System.out.println("Player " + (i + 1) + " played SuperTrump card: " + chosenCard.getName());
                             System.out.println("Changing category to " + categories[trumpType]);
                             currentCategory = trumpType;
+                        } else {
+                            for (int j = 0; j < categories.length; j++)
+                                System.out.println((j + 1) + ". " + categories[j]);
+                            currentCategory = getNumberInput(1, 5, "Choose the category (1-5): ") - 1;
+                            System.out.println("Category chosen: " + categories[currentCategory]);
                         }
+                        players[currentPlayer].hand.remove(chosenCard);
 
-                    } else {
-                        System.out.println("The card's " + categories[currentCategory] + " must be greater than the last card played.");
-                        displayLastCard(lastCard, currentCategory);
-                        continue;
+                        for (Player player : players) {
+                            player.passed = false;
+                        }
                     }
                 }
             }
@@ -119,6 +146,8 @@ public class Game {
             firstTurn = true;
 
         }
+
+        System.out.println("Game over!");
     }
 
     private static void displayLastCard(MineralCard card, int category) {
@@ -130,11 +159,20 @@ public class Game {
         else if (category == 2)
             output = output + card.getCleavage();
         else if (category == 3)
-            output = output + card.getCrystalAbundance();
+            output = output + card.getCrustalAbundance();
         else if (category == 4)
             output = output + card.getEcoValue();
         System.out.println(output);
 
+    }
+
+
+    private static Card getCardWithName(String name, ArrayList<Card> list) {
+        for (Card card : list) {
+            if (card.getName().equals(name))
+                return card;
+        }
+        return null;
     }
 
     private static boolean gameOver(Player[] players) {
@@ -153,14 +191,14 @@ public class Game {
                 numPassed++;
             }
         }
-        return (numPassed == players.length - 1);
+        return (numPassed >= players.length - 1);
     }
 
     private static ArrayList<Card> readCards(String filename) throws FileNotFoundException {
         Scanner file;
         file = new Scanner(new FileInputStream(filename));
 
-        ArrayList<Card> pack = new ArrayList<Card>();
+        ArrayList<Card> pack = new ArrayList<>();
 
         boolean passedHeader = false;
         while (file.hasNextLine()) {
@@ -181,12 +219,12 @@ public class Game {
 
     private static ArrayList<Card> addSuperTrumps(ArrayList<Card> pack) {
         Card[] superTrumpList = {
-                new SuperTrumpCard("The Mineralogist", 0),
-                new SuperTrumpCard("The Geologist", 1),
-                new SuperTrumpCard("The Geophysicist", 2),
-                new SuperTrumpCard("The Petrologist", 3),
-                new SuperTrumpCard("The Miner", 4),
-                new SuperTrumpCard("The Gemmologist", 5)};
+                new SuperTrumpCard("The Mineralogist", 2, "changes the trumps category to Cleavage"),
+                new SuperTrumpCard("The Geologist", 5, "change to trumps category of your choice"),
+                new SuperTrumpCard("The Geophysicist", 1, "changes the trumps category to Specific Gravity"),
+                new SuperTrumpCard("The Petrologist", 3, "changes the trumps category to Crustal Abundance"),
+                new SuperTrumpCard("The Miner", 4, "changes the trumps category to Economic Value"),
+                new SuperTrumpCard("The Gemmologist", 0, "changes the trumps category to Hardness")};
 
         pack.addAll(Arrays.asList(superTrumpList));
         return pack;
@@ -216,13 +254,13 @@ public class Game {
             cleavageMap.put("6 perfect", 14);
         }
 
-        if (crystalMap.isEmpty()) {
-            crystalMap.put("ultratrace", 0);
-            crystalMap.put("trace", 1);
-            crystalMap.put("low", 2);
-            crystalMap.put("moderate", 3);
-            crystalMap.put("high", 4);
-            crystalMap.put("very high", 5);
+        if (crustalMap.isEmpty()) {
+            crustalMap.put("ultratrace", 0);
+            crustalMap.put("trace", 1);
+            crustalMap.put("low", 2);
+            crustalMap.put("moderate", 3);
+            crustalMap.put("high", 4);
+            crustalMap.put("very high", 5);
         }
 
         if (ecoMap.isEmpty()) {
@@ -243,7 +281,7 @@ public class Game {
         } else if (category == 2) {
             return (cleavageMap.get(card1.getCleavage()) > cleavageMap.get((card2.getCleavage())));
         } else if (category == 3) {
-            return (crystalMap.get(card1.getCrystalAbundance()) > cleavageMap.get((card2.getCrystalAbundance())));
+            return (crustalMap.get(card1.getCrustalAbundance()) > cleavageMap.get((card2.getCrustalAbundance())));
         } else if (category == 4) {
             return (ecoMap.get(card1.getEcoValue()) > ecoMap.get(card2.getEcoValue()));
         }
@@ -255,11 +293,11 @@ public class Game {
         int count = 1;
         for (Card card : hand) {
             if (card instanceof SuperTrumpCard)
-                System.out.println(count + ". \t" + card.getName());
+                System.out.println(count + ". \t" + card.getName() + "\t" + ((SuperTrumpCard) card).getInstructions());
             else {
                 MineralCard cardCasted;
                 cardCasted = (MineralCard) card;
-                System.out.println(count + ". \t" + cardCasted.getName() + "\t" + cardCasted.getHardness() + "\t" + cardCasted.getGravity() + "\t" + cardCasted.getCleavage() + "\t" + cardCasted.getCrystalAbundance() + "\t" + cardCasted.getEcoValue());
+                System.out.println(count + ". \t" + cardCasted.getName() + "\t" + cardCasted.getHardness() + "\t" + cardCasted.getGravity() + "\t" + cardCasted.getCleavage() + "\t" + cardCasted.getCrustalAbundance() + "\t" + cardCasted.getEcoValue());
             }
             count++;
         }
