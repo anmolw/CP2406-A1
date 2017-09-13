@@ -59,10 +59,9 @@ public class Game {
 
         while (!gameOver(players)) {
             while (!roundOver(players)) {
-                if (!firstTurn)
+                if (!firstTurn || currentPlayer == numPlayers)
                     currentPlayer = 0;
-                if (currentPlayer == numPlayers)
-                    currentPlayer--;
+
 
                 boolean trumpOverride = false;
 
