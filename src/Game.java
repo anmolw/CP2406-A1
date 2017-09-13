@@ -60,9 +60,12 @@ public class Game {
 
         while (!gameOver(players)) {
             while (!roundOver(players)) {
-                for (int i = 0; i < numPlayers; i++) {
-                    if (players[i].passed || players[i].hand.size() == 0)
+                for (int i = 0; i < numPlayers; ) {
+                    if (players[i].passed || players[i].hand.size() == 0) {
+                        i++;
                         continue;
+                    }
+
                     System.out.println("Player " + (i + 1) + "'s  turn");
                     displayHand(players[i].hand);
                     int choice;
@@ -74,13 +77,16 @@ public class Game {
                         System.out.println("Category chosen: " + categories[currentCategory]);
                         players[i].hand.remove(lastCard);
                         firstTurn = false;
+                        i++;
                         continue;
                     }
-                    choice = getNumberInput(0, players[i].hand.size(), "Choose a card, or type 0 to pass");
+                    System.out.println("Current category: " + categories[currentCategory]);
+                    choice = getNumberInput(0, players[i].hand.size(), "Choose a card, or type 0 to pass: ");
                     if (choice == 0) {
-                        System.out.println("Player "+(i+1)+" passed and drew a card.");
+                        System.out.println("Player " + (i + 1) + " passed and drew a card.");
                         players[i].hand.add(pack.get(0));
                         players[i].passed = true;
+                        i++;
                         continue;
                     }
                     Card chosenCard = players[i].hand.get(choice - 1);
@@ -89,11 +95,19 @@ public class Game {
                         lastCard = (MineralCard) chosenCard;
                         players[i].hand.remove(lastCard);
                         System.out.println("Played card: " + lastCard.getName());
+                        i++;
                     } else if (chosenCard instanceof SuperTrumpCard) {
-                        System.out.println("Supertrump card played.");
+                        int trumpType = ((SuperTrumpCard) chosenCard).getTrumpType();
+                        if (trumpType != 5) {
+                            System.out.println("Player " + (i + 1) + " played SuperTrump card: " + chosenCard.getName());
+                            System.out.println("Changing category to " + categories[trumpType]);
+                            currentCategory = trumpType;
+                        }
+
                     } else {
                         System.out.println("The card's " + categories[currentCategory] + " must be greater than the last card played.");
                         displayLastCard(lastCard, currentCategory);
+                        continue;
                     }
                 }
             }
@@ -108,7 +122,7 @@ public class Game {
     }
 
     private static void displayLastCard(MineralCard card, int category) {
-        String output = "Last card played: "+card.getName()+" "+categories[category]+": ";
+        String output = "Last card played: " + card.getName() + " " + categories[category] + ": ";
         if (category == 0)
             output = output + card.getHardness();
         else if (category == 1)
@@ -178,6 +192,10 @@ public class Game {
         return pack;
     }
 
+    private static boolean isValidMove(Card card, Card lastCard, int category) {
+        return false;
+    }
+
     private static boolean isGreater(int category, MineralCard card1, MineralCard card2) {
 
         if (cleavageMap.isEmpty()) {
@@ -233,7 +251,7 @@ public class Game {
     }
 
     private static void displayHand(ArrayList<Card> hand) {
-        System.out.println("Number\tName\tHardness\tSpecific Gravity\tCleavage\tCrystal Abundance\tEconomic Value");
+        System.out.printf("Number\tName\tHardness\tSpecific Gravity\tCleavage\tCrystal Abundance\tEconomic Value\n");
         int count = 1;
         for (Card card : hand) {
             if (card instanceof SuperTrumpCard)
